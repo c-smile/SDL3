@@ -215,10 +215,22 @@ static int WIN_AdjustWindowRectWithStyle(SDL_Window *window, DWORD style, DWORD 
     rect.right = *width;
     rect.bottom = *height;
 
+    if (window->driverdata) {
+    /* for already mapped window use real client offsets  */
+      int top, left, bottom, right;
+      SDL_GetWindowBordersSize(window, &top, &left, &bottom, &right);
+      rect.left -= left;
+      rect.top -= top;
+      rect.right += right;
+      rect.bottom += bottom;
+      /* for non-mapped windows, the best we can do is to use AdjustWindowRectEx OS **suggestion**.
+         NOTE: AdjustWindowRectEx has nothing with real frame-to-client offset - it does not take HWND.  
+       */
+    }
     /* borderless windows will have WM_NCCALCSIZE return 0 for the non-client area. When this happens, it looks like windows will send a resize message
        expanding the window client area to the previous window + chrome size, so shouldn't need to adjust the window size for the set styles.
      */
-    if (!(window->flags & SDL_WINDOW_BORDERLESS)) {
+    else if (!(window->flags & SDL_WINDOW_BORDERLESS)) {
 #if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
         AdjustWindowRectEx(&rect, style, menu, 0);
 #else
